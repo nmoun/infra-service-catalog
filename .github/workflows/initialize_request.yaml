@@ -50,7 +50,7 @@ jobs:
           # TODO: use labels or something to attach a state to the issue (labels must exist at the repo level before linking those to issues)
           ISSUE_TITLE="${{ inputs.product_type }}: provisioning of ${{ inputs.product_id }}"
           ISSUE_BODY="${{ inputs.tfvars_content }}"
-          gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
+          gh issue create --label 'infra: to be started' --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
 
       - name: Call plan execution
         run: |
