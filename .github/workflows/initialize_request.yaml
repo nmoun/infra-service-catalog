@@ -82,8 +82,7 @@ jobs:
       
       - name: Call plan execution (workflow_dispatch)
         run: |
-          # TODO: format the generated tfvars by escaping double quotes and line returns
-          # TFVARS_FORMATED=$(echo "${{ inputs.tfvars_content }}" | sed 's/"/\\"/g' | awk 'NR>1{printf "\\n"} {printf "%s", $0}')
+          # TODO: serialize the generated tfvars
 
           TFVARS_FORMATED="${{ inputs.tfvars_content }}"
           cat <<-EOF > request_body.json
@@ -95,7 +94,9 @@ jobs:
               "tfvars_content": "$TFVARS_FORMATED",
               "environment": "${{ inputs.environment }}",
               "repository": "${{ inputs.repository }}",
-              "repository_version": "${{ inputs.repository_version }}"
+              "repository_version": "${{ inputs.repository_version }}",
+              "request_id": "${{ steps.create.outputs.request_id }}",
+              "callback_repo": "${{ github.repository }}"
             }
           }
           EOF

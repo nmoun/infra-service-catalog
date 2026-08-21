@@ -1,0 +1,38 @@
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Request ID (for now, issue number)
+        type: string
+        required: true
+      status:
+        description: Request ID (for now, issue number)
+        type: string
+        required: true
+      plan_run_id:
+        description: Run ID of the plan
+        type: string
+        required: true
+      tf_plan_summary:
+        description: TF plan summary
+        type: string
+
+concurrency:
+  group: request-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+jobs:
+  transition:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install PyGithub
+      - name: Apply state transition
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+          TARGET_STATUS: ${{ inputs.status }}   # "PLAN_SUCCESS" or "PLAN_FAILED"
+          PLAN_RUN_ID: ${{ inputs.plan_run_id }}
+          STORE_BACKEND: github
+          REQUEST_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/transition_guard.py
