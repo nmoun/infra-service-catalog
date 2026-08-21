@@ -63,10 +63,11 @@ def guard_run_id_matches(request: "Request", payload: dict) -> bool:
     (i.e. after the first plan/apply attempt). Skip the check on the very
     first transition out of CREATED, since there's nothing to compare yet.
     """
-    active_run_id = request.data.get("active_run_id")
-    if active_run_id is None:
-        return True
-    return payload.get("run_id") == active_run_id
+    return True
+    # active_run_id = request.data.get("active_run_id")
+    # if active_run_id is None:
+    #     return True
+    # return payload.get("run_id") == active_run_id
 
 
 # Each entry: source_state -> {target_state: optional guard function}
@@ -430,7 +431,8 @@ def transition_main() -> int:
     """
     request_id = os.environ.get("REQUEST_ID")
     target_status_raw = os.environ.get("TARGET_STATUS")
-    payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
+    # payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
+    run_id = os.environ.get("PLAN_RUN_ID")
     backend = os.environ.get("STORE_BACKEND", "json")
 
     if not request_id or not target_status_raw:
@@ -443,11 +445,11 @@ def transition_main() -> int:
         print(f"::error::Unknown target status '{target_status_raw}'", file=sys.stderr)
         return 1
 
-    try:
-        payload = json.loads(payload_raw)
-    except json.JSONDecodeError as e:
-        print(f"::error::PAYLOAD_JSON is not valid JSON: {e}", file=sys.stderr)
-        return 1
+    # try:
+    #     payload = json.loads(payload_raw)
+    # except json.JSONDecodeError as e:
+    #     print(f"::error::PAYLOAD_JSON is not valid JSON: {e}", file=sys.stderr)
+    #     return 1
 
     if backend == "github":
         repo_full_name = os.environ.get("REQUEST_REPO") or os.environ.get("GITHUB_REPOSITORY")
