@@ -52,7 +52,7 @@ jobs:
           ISSUE_BODY="${{ inputs.tfvars_content }}"
           gh issue create --label 'infra: to be started' --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
 
-      - name: Call plan execution
+      - name: Call plan execution (repository_dispatch)
         run: |
           # TODO: format the generated tfvars by escaping double quotes and line returns
           # TFVARS_FORMATED=$(echo "${{ inputs.tfvars_content }}" | sed 's/"/\\"/g' | awk 'NR>1{printf "\\n"} {printf "%s", $0}')
@@ -60,28 +60,18 @@ jobs:
           TFVARS_FORMATED="${{ inputs.tfvars_content }}"
           cat <<-EOF > request_body.json
           {
-            "ref":"main",
-            "inputs":{
+            "event_type": "launch_plan",
+            "client_payload": {
               "product_id":"${{ inputs.product_id }}",
               "product_type":"${{ inputs.product_type }}",
               "tfvars_content": "$TFVARS_FORMATED",
               "environment": "${{ inputs.environment }}",
               "repository": "${{ inputs.repository }}",
-              "repository_version": "${{ inputs.repository_version }}"
+              "repository_version": "${{ inputs.repository_version }}",
+              "callback_repo": "${{ github.repository }}"
             }
           }
           EOF
-
-          echo "DEBUG"
-          echo "product_id: ${{ inputs.product_id }}"
-          echo "product_type: ${{ inputs.product_type }}"
-          echo "tfvars_content: $TFVARS_FORMATED"
-          echo "environment: ${{ inputs.environment }}"
-          echo "repository: ${{ inputs.repository }}"
-          echo "repository_version: ${{ inputs.repository_version }}"
-
-          echo "request_body.json content:"
-          cat request_body.json
 
           # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
           # TODO: handle timeouts and non 200 responses: make job fails
@@ -91,5 +81,36 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
-            https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/plan_dispatch.yaml/dispatches \
+            https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/dispatches \
             -d @request_body.json
+      
+      # - name: Call plan execution (workflow_dispatch)
+      #   run: |
+      #     # TODO: format the generated tfvars by escaping double quotes and line returns
+      #     # TFVARS_FORMATED=$(echo "${{ inputs.tfvars_content }}" | sed 's/"/\\"/g' | awk 'NR>1{printf "\\n"} {printf "%s", $0}')
+
+      #     TFVARS_FORMATED="${{ inputs.tfvars_content }}"
+      #     cat <<-EOF > request_body.json
+      #     {
+      #       "ref":"main",
+      #       "inputs":{
+      #         "product_id":"${{ inputs.product_id }}",
+      #         "product_type":"${{ inputs.product_type }}",
+      #         "tfvars_content": "$TFVARS_FORMATED",
+      #         "environment": "${{ inputs.environment }}",
+      #         "repository": "${{ inputs.repository }}",
+      #         "repository_version": "${{ inputs.repository_version }}"
+      #       }
+      #     }
+      #     EOF
+
+      #     # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
+      #     # TODO: handle timeouts and non 200 responses: make job fails
+      #     # TODO: get repository based on product type (with a map for example)???
+      #     curl -L \
+      #       -X POST \
+      #       -H "Accept: application/vnd.github+json" \
+      #       -H "Authorization: Bearer ${{ secrets.PAT }}" \
+      #       -H "X-GitHub-Api-Version: 2026-03-10" \
+      #       https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/plan_dispatch.yaml/dispatches \
+      #       -d @request_body.json
