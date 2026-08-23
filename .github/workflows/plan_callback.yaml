@@ -1,3 +1,4 @@
+name: Plan callback
 on:
   workflow_dispatch:
     inputs:
@@ -6,7 +7,7 @@ on:
         type: string
         required: true
       status:
-        description: Request ID (for now, issue number)
+        description: Request status
         type: string
         required: true
       run_id:

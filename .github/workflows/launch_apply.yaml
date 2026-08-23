@@ -72,7 +72,8 @@ jobs:
               "repository_version": "${{ steps.get.outputs.repository_version }}",
               "request_id": "${{ github.event.issue.number }}",
               "plan_run_id": "$RUN_ID",
-              "callback_repo": "${{ github.repository }}"
+              "callback_repo": "${{ github.repository }}",
+              "callback_workflow": "apply_callback.yaml"
             }
           }
           EOF

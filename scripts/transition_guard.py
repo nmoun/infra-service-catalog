@@ -446,9 +446,7 @@ def transition_main() -> int:
         return 1
 
     # Not sure if even needed for the plan phase as the run id must be provided during the apply launch anyway
-    payload = {
-        "run_id": run_id
-    }
+    payload = {}
 
     # try:
     #     payload = json.loads(payload_raw)

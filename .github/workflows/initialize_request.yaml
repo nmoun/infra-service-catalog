@@ -96,7 +96,8 @@ jobs:
               "repository": "${{ inputs.repository }}",
               "repository_version": "${{ inputs.repository_version }}",
               "request_id": "${{ steps.create.outputs.request_id }}",
-              "callback_repo": "${{ github.repository }}"
+              "callback_repo": "${{ github.repository }}",
+              "callback_workflow": "plan_callback.yaml"
             }
           }
           EOF

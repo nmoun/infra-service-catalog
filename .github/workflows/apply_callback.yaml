@@ -1,0 +1,57 @@
+name: Apply callback
+on:
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: Request ID (for now, issue number)
+        type: string
+        required: true
+      status:
+        description: Request status
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  issues: write
+
+# Serialize any workflow runs touching the same request, so a concurrent
+# duplicate/retry callback can't race this one -- our substitute for real
+# optimistic locking while state lives in GitHub issues.
+concurrency:
+  group: request-${{ inputs.request_id }}
+  cancel-in-progress: false
+
+jobs:
+  transition:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install PyGithub
+
+      - name: Apply state transition
+        env:
+          REQUEST_ID: ${{ inputs.request_id }}
+          TARGET_STATUS: ${{ inputs.status }} # "APPLY_SUCCESS" or "APPLY_FAILED"
+          STORE_BACKEND: github
+          REQUEST_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/transition_guard.py transition
+
+      - name: Comment on issue with result
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment "${{ inputs.request_id }}" \
+            --body "Apply callback received: status=${{ inputs.status }}"
+
+      # TODO: close request
