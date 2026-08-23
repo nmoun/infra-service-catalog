@@ -1,0 +1,92 @@
+name: Deploy product - apply (dispatch)
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: request-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  initialize_request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Check comment
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          echo "COMMENT_BODY: $COMMENT_BODY"
+          if [[ ! "$COMMENT_BODY" =~ ^/approve-deployment.+ ]]; then
+            echo "Comment added is not to launch terraform execution"
+            exit 1
+          fi
+
+      # - name:
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: |
+      #     # TODO: use labels or something to attach a state to the issue (labels must exist at the repo level before linking those to issues)
+      #     ISSUE_TITLE="${{ inputs.product_type }}: provisioning of ${{ inputs.product_id }}"
+      #     ISSUE_BODY="${{ inputs.tfvars_content }}"
+      #     gh issue create --label 'infra: to be started' --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install PyGithub
+      
+      - name: Get request content
+        id: get
+        env:
+          REQUEST_ID: "${{ github.event.issue.number }}"
+          REQUEST_REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/transition_guard.py get
+
+      
+      - name: Call apply execution (workflow_dispatch)
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        run: |
+          RUN_ID=$(echo "$COMMENT_BODY" | grep -oP '\d+-\d+$')
+
+          TFVARS_FORMATED="${{ inputs.tfvars_content }}"
+          cat <<-EOF > request_body.json
+          {
+            "ref":"main",
+            "inputs":{
+              "product_id":"${{ steps.get.outputs.product_id }}",
+              "product_type":"${{ steps.get.outputs.product_type }}",
+              "environment": "${{ steps.get.outputs.environment }}",
+              "repository": "${{ steps.get.outputs.repository }}",
+              "repository_version": "${{ steps.get.outputs.repository_version }}",
+              "request_id": "${{ github.event.issue.number }}",
+              "plan_run_id": "$RUN_ID",
+              "callback_repo": "${{ github.repository }}"
+            }
+          }
+          EOF
+
+          echo 'request_body.json content:'
+          cat request_body.json
+
+          # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
+          # TODO: handle timeouts and non 200 responses: make job fails
+          # TODO: get repository based on product type (with a map for example)???
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.PAT }}" \
+            -H "X-GitHub-Api-Version: 2026-03-10" \
+            https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/apply_dispatch.yaml/dispatches \
+            -d @request_body.json
