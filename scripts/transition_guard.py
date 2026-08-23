@@ -432,7 +432,7 @@ def transition_main() -> int:
     request_id = os.environ.get("REQUEST_ID")
     target_status_raw = os.environ.get("TARGET_STATUS")
     # payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
-    run_id = os.environ.get("PLAN_RUN_ID")
+    run_id = os.environ.get("RUN_ID")
     backend = os.environ.get("STORE_BACKEND", "json")
 
     if not request_id or not target_status_raw:
@@ -444,6 +444,11 @@ def transition_main() -> int:
     except ValueError:
         print(f"::error::Unknown target status '{target_status_raw}'", file=sys.stderr)
         return 1
+
+    # Not sure if even needed for the plan phase as the run id must be provided during the apply launch anyway
+    payload = {
+        "run_id": run_id
+    }
 
     # try:
     #     payload = json.loads(payload_raw)
