@@ -42,11 +42,18 @@ jobs:
         run: python3 scripts/transition_guard.py
 
       - name: Update request with plan summary
-        if: ${{ inputs.tf_plan_summary }}
+        if: ${{ inputs.tf_plan_summary }} # caller sent a plan summary
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TF_PLAN_SUMMARY: ${{ inputs.tf_plan_summary }}
+          PLAN_RUN_ID: ${{ inputs.run_id }}
         run: |
           echo 'tf plan summary received:'
           echo "$TF_PLAN_SUMMARY"
-          gh issue comment ${{ inputs.request_id }} --body "$TF_PLAN_SUMMARY"
+
+          ISSUE_COMMENT="$TF_PLAN_SUMMARY"
+          ISSUE_COMMENT+='
+          To launch apply execution, add a comment with `/approve-deployment ${{ inputs.run_id }}`
+          (temporary solution, in corp. environment, use Github environment reviewers)'
+
+          gh issue comment ${{ inputs.request_id }} --body "$ISSUE_COMMENT"
