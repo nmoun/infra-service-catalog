@@ -17,6 +17,10 @@ on:
         description: TF plan summary
         type: string
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: request-${{ inputs.request_id }}
   cancel-in-progress: false
@@ -38,8 +42,11 @@ jobs:
         run: python3 scripts/transition_guard.py
 
       - name: Update request with plan summary
+        if: ${{ inputs.tf_plan_summary }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          FORMATTED_TFPLAN: ${{ steps.formatted_tf_plan.outputs.formatted_tf_plan }}
+          TF_PLAN_SUMMARY: ${{ inputs.tf_plan_summary }}
         run: |
+          echo 'tf plan summary received:'
+          echo "$TF_PLAN_SUMMARY"
           gh issue comment ${{ inputs.request_id }} --body "$TF_PLAN_SUMMARY"
