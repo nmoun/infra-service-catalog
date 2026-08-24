@@ -1,3 +1,4 @@
+name: Plan callback
 on:
   workflow_dispatch:
     inputs:
@@ -6,16 +7,20 @@ on:
         type: string
         required: true
       status:
-        description: Request ID (for now, issue number)
+        description: Request status
         type: string
         required: true
-      plan_run_id:
-        description: Run ID of the plan
+      run_id:
+        description: Run ID of the caller (useful how?)
         type: string
         required: true
       tf_plan_summary:
         description: TF plan summary
         type: string
+
+permissions:
+  contents: read
+  issues: write
 
 concurrency:
   group: request-${{ inputs.request_id }}
@@ -31,8 +36,25 @@ jobs:
         env:
           REQUEST_ID: ${{ inputs.request_id }}
           TARGET_STATUS: ${{ inputs.status }}   # "PLAN_SUCCESS" or "PLAN_FAILED"
-          PLAN_RUN_ID: ${{ inputs.plan_run_id }}
+          RUN_ID: ${{ inputs.run_id }}
           STORE_BACKEND: github
           REQUEST_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/transition_guard.py
+
+      - name: Update request with plan summary
+        if: ${{ inputs.tf_plan_summary }} # caller sent a plan summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TF_PLAN_SUMMARY: ${{ inputs.tf_plan_summary }}
+          PLAN_RUN_ID: ${{ inputs.run_id }}
+        run: |
+          echo 'tf plan summary received:'
+          echo "$TF_PLAN_SUMMARY"
+
+          ISSUE_COMMENT="$TF_PLAN_SUMMARY"
+          ISSUE_COMMENT+='
+          To launch apply execution, add a comment with `/approve-deployment ${{ inputs.run_id }}`
+          (temporary solution, in corp. environment, use Github environment reviewers)'
+
+          gh issue comment ${{ inputs.request_id }} --body "$ISSUE_COMMENT"

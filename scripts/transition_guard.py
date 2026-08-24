@@ -432,7 +432,8 @@ def transition_main() -> int:
     request_id = os.environ.get("REQUEST_ID")
     target_status_raw = os.environ.get("TARGET_STATUS")
     # payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
-    run_id = os.environ.get("PLAN_RUN_ID")
+
+    run_id = os.environ.get("RUN_ID")
     backend = os.environ.get("STORE_BACKEND", "json")
 
     if not request_id or not target_status_raw:
@@ -444,6 +445,10 @@ def transition_main() -> int:
     except ValueError:
         print(f"::error::Unknown target status '{target_status_raw}'", file=sys.stderr)
         return 1
+
+
+    # Not sure if even needed for the plan phase as the run id must be provided during the apply launch anyway
+    payload = {}
 
     # try:
     #     payload = json.loads(payload_raw)
@@ -487,6 +492,45 @@ def transition_main() -> int:
     return 0
 
 
+def get_main() -> int:
+    """
+    Gets the issue content:
+      REQUEST_ID       e.g. "42" (the issue number, when using GitHubIssueStore)
+
+      -- github backend --
+      REQUEST_REPO     "owner/repo" of the Service Catalog repo holding the
+                        issues (defaults to GITHUB_REPOSITORY, i.e. the repo
+                        the workflow is running in)
+      GITHUB_TOKEN     token with issues:write on REQUEST_REPO
+
+    Outputs (via GITHUB_OUTPUT):
+      product_id
+      product_type
+      repository
+      repository_version
+      environment
+    """
+    if Github is None:
+        print("::error::PyGithub is not installed (`pip install PyGithub`)", file=sys.stderr)
+        return 1
+
+    request_id = os.environ.get("REQUEST_ID")
+    repo_full_name = os.environ.get("REQUEST_REPO") or os.environ.get("GITHUB_REPOSITORY")
+    token = os.environ.get("GITHUB_TOKEN")
+
+    store = GitHubIssueStore(repo_full_name, token)
+    request = store.get(request_id)
+    data = request.data
+
+
+    _write_github_output("product_id", data.get("product_id"))
+    _write_github_output("product_type", data.get("product_type"))
+    _write_github_output("repository", data.get("repository"))
+    _write_github_output("repository_version", data.get("repository_version"))
+    _write_github_output("environment", data.get("environment"))
+    return 0
+
+
 def main() -> int:
     """Dispatch to the right entrypoint based on argv[1].
 
@@ -501,6 +545,8 @@ def main() -> int:
         return create_main()
     elif command == "transition":
         return transition_main()
+    elif command == "get":
+        return get_main()
     else:
         print(f"::error::Unknown command '{command}' (expected 'create' or 'transition')", file=sys.stderr)
         return 1
