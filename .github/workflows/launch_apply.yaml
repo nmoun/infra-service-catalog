@@ -1,4 +1,5 @@
 name: Deploy product - apply (dispatch)
+# TODO: issue comment creation is opened to all users with read access to the repo. Prefer deployment reviewers.
 on:
   issue_comment:
     types: [created]

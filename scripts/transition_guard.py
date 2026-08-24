@@ -505,8 +505,18 @@ def get_main() -> int:
         return 1
 
     request_id = os.environ.get("REQUEST_ID")
+    if not request_id:
+        print("::error::REQUEST_ID is required", file=sys.stderr)
+        return 1
+
     repo_full_name = os.environ.get("REQUEST_REPO") or os.environ.get("GITHUB_REPOSITORY")
     token = os.environ.get("GITHUB_TOKEN")
+    if not repo_full_name or not token:
+        print(
+            "::error::REQUEST_REPO (or GITHUB_REPOSITORY) and GITHUB_TOKEN are required",
+            file=sys.stderr,
+        )
+        return 1
 
     store = GitHubIssueStore(repo_full_name, token)
     request = store.get(request_id)
