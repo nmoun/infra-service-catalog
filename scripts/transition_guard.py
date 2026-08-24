@@ -54,6 +54,7 @@ class State(str, Enum):
     PLAN_FAILED = "PLAN_FAILED"
     APPLY_SUCCESS = "APPLY_SUCCESS"
     APPLY_FAILED = "APPLY_FAILED"
+    NO_CHANGES = "NO_CHANGES"
 
 
 def guard_function(request: "Request", payload: dict) -> bool:
@@ -71,11 +72,13 @@ TRANSITIONS: dict[State, dict[State, Optional[Callable]]] = {
     State.CREATED: {
         State.PLAN_SUCCESS: guard_function,
         State.PLAN_FAILED: guard_function,
+        State.NO_CHANGES: guard_function,
     },
     State.PLAN_FAILED: {
         # retry a plan
         State.PLAN_SUCCESS: guard_function,
         State.PLAN_FAILED: guard_function,
+        State.NO_CHANGES: guard_function,
     },
     State.PLAN_SUCCESS: {
         State.APPLY_SUCCESS: guard_function,
@@ -83,15 +86,20 @@ TRANSITIONS: dict[State, dict[State, Optional[Callable]]] = {
         # allow re-planning before apply (e.g. drift, tfvars changed)
         State.PLAN_SUCCESS: guard_function,
         State.PLAN_FAILED: guard_function,
+        State.NO_CHANGES: guard_function,
     },
     State.APPLY_FAILED: {
         # allow re-planning before apply (e.g. drift, tfvars changed)
         State.PLAN_SUCCESS: guard_function,
         State.PLAN_FAILED: guard_function,
+        State.NO_CHANGES: guard_function,
     },
     State.APPLY_SUCCESS: {
         # terminal: no transitions out. If you need re-apply/drift-fix
         # flows, add them here explicitly rather than leaving this open.
+    },
+    State.NO_CHANGES: {
+        # terminal
     },
 }
 

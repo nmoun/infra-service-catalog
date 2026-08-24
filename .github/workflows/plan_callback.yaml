@@ -43,14 +43,14 @@ jobs:
       - name: Apply state transition
         env:
           REQUEST_ID: ${{ inputs.request_id }}
-          TARGET_STATUS: ${{ inputs.status }}   # "PLAN_SUCCESS" or "PLAN_FAILED"
+          TARGET_STATUS: ${{ inputs.status }}   # "PLAN_SUCCESS", "PLAN_FAILED" or "NO_CHANGES"
           STORE_BACKEND: github
           REQUEST_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python3 scripts/transition_guard.py transition
 
       - name: Update request with plan summary
-        if: ${{ inputs.tf_plan_summary }} # caller sent a plan summary
+        if: inputs.status == "PLAN_SUCCESS" && ${{ inputs.tf_plan_summary }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TF_PLAN_SUMMARY: ${{ inputs.tf_plan_summary }}
@@ -65,3 +65,12 @@ jobs:
           (temporary solution, in corp. environment, use Github environment reviewers)'
 
           gh issue comment ${{ inputs.request_id }} --body "$ISSUE_COMMENT"
+
+      - name: Close issue on no-op plan
+        if: inputs.status == 'NO_CHANGES'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment ${{ inputs.request_id }} \
+            --body "Terraform plan detected no changes. Infrastructure is already up to date. Closing request."
+          gh issue close ${{ inputs.request_id }} --reason "not planned"
