@@ -54,5 +54,11 @@ jobs:
           gh issue comment "${{ inputs.request_id }}" \
             --body "Apply callback received: status=${{ inputs.status }}"
 
-      # TODO: close request
+      - name: Close the request if fulfilled
+        if: ${{ inputs.status }} == "APPLY_SUCCESS"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue close "${{ inputs.request_id }}" --reason completed
+
       # TODO: display apply result (resources added, changed, deleted) ?

@@ -50,7 +50,13 @@ jobs:
         env:
           COMMENT_BODY: ${{ github.event.comment.body }}
         run: |
-          RUN_ID=$(echo "$COMMENT_BODY" | grep -oP '\d+-\d+$')
+          RUN_ID=$(echo "$COMMENT_BODY" | tr -d '[:space:]' | grep -oE '[0-9]+-[0-9]+$') || echo "::error::Could not extract RUN_ID from comment."
+
+          if [ -z "$RUN_ID" ]; then
+            echo "::error::Expected format: '<digits>-<digits>' at end of line."
+            echo "::error::Comment body was: $COMMENT_BODY"
+            exit 1
+          fi
 
           cat <<-EOF > request_body.json
           {
@@ -74,7 +80,7 @@ jobs:
 
           # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
           # TODO: get repository based on product type (with a map for example)???
-          HTTP_STATUS=$(curl -s -o response.json \
+          HTTP_STATUS=$(curl -w "%{http_code}" -s -o response.json \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \

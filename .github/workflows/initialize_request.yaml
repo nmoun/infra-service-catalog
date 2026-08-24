@@ -107,7 +107,7 @@ jobs:
 
           # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
           # TODO: get repository based on product type (with a map for example)???
-          HTTP_STATUS=$(curl -s -o response.json \
+          HTTP_STATUS=$(curl -w "%{http_code}" -s -o response.json \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
