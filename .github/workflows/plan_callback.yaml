@@ -11,7 +11,7 @@ on:
         type: string
         required: true
       run_id:
-        description: Run ID of the caller (useful how?)
+        description: Run ID of the caller
         type: string
         required: true
       tf_plan_summary:
@@ -31,16 +31,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: pip install PyGithub
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install PyGithub
+
       - name: Apply state transition
         env:
           REQUEST_ID: ${{ inputs.request_id }}
           TARGET_STATUS: ${{ inputs.status }}   # "PLAN_SUCCESS" or "PLAN_FAILED"
-          RUN_ID: ${{ inputs.run_id }}
           STORE_BACKEND: github
           REQUEST_REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/transition_guard.py
+        run: python3 scripts/transition_guard.py transition
 
       - name: Update request with plan summary
         if: ${{ inputs.tf_plan_summary }} # caller sent a plan summary

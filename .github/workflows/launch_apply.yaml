@@ -28,15 +28,6 @@ jobs:
             exit 1
           fi
 
-      # - name:
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: |
-      #     # TODO: use labels or something to attach a state to the issue (labels must exist at the repo level before linking those to issues)
-      #     ISSUE_TITLE="${{ inputs.product_type }}: provisioning of ${{ inputs.product_id }}"
-      #     ISSUE_BODY="${{ inputs.tfvars_content }}"
-      #     gh issue create --label 'infra: to be started' --title "$ISSUE_TITLE" --body "$ISSUE_BODY"
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -60,7 +51,6 @@ jobs:
         run: |
           RUN_ID=$(echo "$COMMENT_BODY" | grep -oP '\d+-\d+$')
 
-          TFVARS_FORMATED="${{ inputs.tfvars_content }}"
           cat <<-EOF > request_body.json
           {
             "ref":"main",
@@ -82,12 +72,17 @@ jobs:
           cat request_body.json
 
           # TODO: use installation access token instead of PAT (must have Action (write) permission on called repo)
-          # TODO: handle timeouts and non 200 responses: make job fails
           # TODO: get repository based on product type (with a map for example)???
-          curl -L \
+          HTTP_STATUS=$(curl -s -o response.json \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/apply_dispatch.yaml/dispatches \
-            -d @request_body.json
+            -d @request_body.json)
+
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "::error::GitHub API call failed with status $HTTP_STATUS"
+            cat response.json
+            exit 1
+          fi

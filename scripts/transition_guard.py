@@ -56,43 +56,38 @@ class State(str, Enum):
     APPLY_FAILED = "APPLY_FAILED"
 
 
-def guard_run_id_matches(request: "Request", payload: dict) -> bool:
-    """Reject callbacks from a stale/abandoned run.
+def guard_function(request: "Request", payload: dict) -> bool:
+    """Reject callbacks if return False.
 
-    Only enforced once a run_id has actually been recorded on the request
-    (i.e. after the first plan/apply attempt). Skip the check on the very
-    first transition out of CREATED, since there's nothing to compare yet.
+    Possible to compare Request content with payload sent by the caller
+    of the callback.
     """
     return True
-    # active_run_id = request.data.get("active_run_id")
-    # if active_run_id is None:
-    #     return True
-    # return payload.get("run_id") == active_run_id
 
 
 # Each entry: source_state -> {target_state: optional guard function}
 # A guard function returns True/False given (request, payload).
 TRANSITIONS: dict[State, dict[State, Optional[Callable]]] = {
     State.CREATED: {
-        State.PLAN_SUCCESS: guard_run_id_matches,
-        State.PLAN_FAILED: guard_run_id_matches,
+        State.PLAN_SUCCESS: guard_function,
+        State.PLAN_FAILED: guard_function,
     },
     State.PLAN_FAILED: {
         # retry a plan
-        State.PLAN_SUCCESS: guard_run_id_matches,
-        State.PLAN_FAILED: guard_run_id_matches,
+        State.PLAN_SUCCESS: guard_function,
+        State.PLAN_FAILED: guard_function,
     },
     State.PLAN_SUCCESS: {
-        State.APPLY_SUCCESS: guard_run_id_matches,
-        State.APPLY_FAILED: guard_run_id_matches,
+        State.APPLY_SUCCESS: guard_function,
+        State.APPLY_FAILED: guard_function,
         # allow re-planning before apply (e.g. drift, tfvars changed)
-        State.PLAN_SUCCESS: guard_run_id_matches,
-        State.PLAN_FAILED: guard_run_id_matches,
+        State.PLAN_SUCCESS: guard_function,
+        State.PLAN_FAILED: guard_function,
     },
     State.APPLY_FAILED: {
         # allow re-planning before apply (e.g. drift, tfvars changed)
-        State.PLAN_SUCCESS: guard_run_id_matches,
-        State.PLAN_FAILED: guard_run_id_matches,
+        State.PLAN_SUCCESS: guard_function,
+        State.PLAN_FAILED: guard_function,
     },
     State.APPLY_SUCCESS: {
         # terminal: no transitions out. If you need re-apply/drift-fix
@@ -321,7 +316,7 @@ def apply_transition(
     guard = allowed[target_status]
     if guard is not None and not guard(request, payload):
         raise TransitionError(
-            reason="guard rejected transition (e.g. stale run_id)",
+            reason="guard rejected transition",
             current=request.status.value,
             attempted=target_status.value,
         )
@@ -431,9 +426,8 @@ def transition_main() -> int:
     """
     request_id = os.environ.get("REQUEST_ID")
     target_status_raw = os.environ.get("TARGET_STATUS")
-    # payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
+    payload_raw = os.environ.get("PAYLOAD_JSON", "{}")
 
-    run_id = os.environ.get("RUN_ID")
     backend = os.environ.get("STORE_BACKEND", "json")
 
     if not request_id or not target_status_raw:
@@ -446,15 +440,11 @@ def transition_main() -> int:
         print(f"::error::Unknown target status '{target_status_raw}'", file=sys.stderr)
         return 1
 
-
-    # Not sure if even needed for the plan phase as the run id must be provided during the apply launch anyway
-    payload = {}
-
-    # try:
-    #     payload = json.loads(payload_raw)
-    # except json.JSONDecodeError as e:
-    #     print(f"::error::PAYLOAD_JSON is not valid JSON: {e}", file=sys.stderr)
-    #     return 1
+    try:
+        payload = json.loads(payload_raw)
+    except json.JSONDecodeError as e:
+        print(f"::error::PAYLOAD_JSON is not valid JSON: {e}", file=sys.stderr)
+        return 1
 
     if backend == "github":
         repo_full_name = os.environ.get("REQUEST_REPO") or os.environ.get("GITHUB_REPOSITORY")
@@ -548,7 +538,7 @@ def main() -> int:
     elif command == "get":
         return get_main()
     else:
-        print(f"::error::Unknown command '{command}' (expected 'create' or 'transition')", file=sys.stderr)
+        print(f"::error::Unknown command '{command}' (expected 'create', 'get' or 'transition')", file=sys.stderr)
         return 1
 
 
