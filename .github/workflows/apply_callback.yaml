@@ -51,8 +51,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # TODO: add content or URL to apply details
           gh issue comment "${{ inputs.request_id }}" \
-            --body "Apply callback received: status=${{ inputs.status }}"
+            --body "$(cat <<'EOF'
+          Apply callback received:
+          status=${{ inputs.status }}
+          EOF
+          )"
 
       - name: Close the request if fulfilled
         if: ${{ inputs.status }} == "APPLY_SUCCESS"
@@ -60,5 +65,3 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh issue close "${{ inputs.request_id }}" --reason completed
-
-      # TODO: display apply result (resources added, changed, deleted) ?
