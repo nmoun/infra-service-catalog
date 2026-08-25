@@ -35,9 +35,10 @@ permissions:
 
 jobs:
   # TODO: generation of tfvars content and product ID based on inputs should be executed before the request creation
+  # generate_tfvars:
 
   # TODO: generate installation access tokens instead of using PATs
-  initialize_request:
+  create_request:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -69,7 +70,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # EXTRA_LABELS_JSON: '["product:${{ inputs.product }}"]'
         run: python3 scripts/transition_guard.py create
-
 
       # Notes: we use event workflow_dispatch as repository_dispatch requires "Contents" repository permissions (write)
       - name: Call plan execution (workflow_dispatch)

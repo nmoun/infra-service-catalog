@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  transition:
+  plan_callback:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

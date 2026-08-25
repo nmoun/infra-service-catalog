@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  transition:
+  apply_callback:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

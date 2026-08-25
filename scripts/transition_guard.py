@@ -20,6 +20,7 @@ States (as requested, without the *_IN_PROGRESS intermediate states):
     PLAN_FAILED
     APPLY_SUCCESS
     APPLY_FAILED
+    NO_CHANGES
 
 Exit codes:
     0  -> transition accepted, new state persisted

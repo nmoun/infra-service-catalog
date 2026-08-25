@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  initialize_request:
+  launch_apply:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
