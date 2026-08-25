@@ -12,7 +12,7 @@ on:
         type: string
         required: true
       product_type:
-        description: Product type (e.g vm_creation, gke_creation)
+        description: Product type (e.g vm_instance, gke_cluster...)
         type: string
         required: true
       environment:
@@ -20,14 +20,16 @@ on:
         type: string
         required: true
       # TODO: might be linked to the product type provided
+      provisioning_repository:
+        type: string
+        required: true
+        description: Repository containing the pipelines to provision a specific product
       repository:
-        description: Repository containing the terraform configuration used
         type: string
-        required: true
+        description: Repository containing the terraform template (override default if provided)
       repository_version:
-        description: Version of the repository containing the terraform configuration (tag, sha...)
         type: string
-        required: true
+        description: Version of the repository to checkout (override default if provided)
 
 permissions:
   contents: read
@@ -62,6 +64,7 @@ jobs:
               "product_id":"${{ inputs.product_id }}",
               "product_type":"${{ inputs.product_type }}",
               "environment": "${{ inputs.environment }}",
+              "provisioning_repository": "${{ inputs.provisioning_repository }}",
               "repository": "${{ inputs.repository }}",
               "repository_version": "${{ inputs.repository_version }}",
               "requested_by": "${{ github.actor }}"
@@ -112,7 +115,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
-            https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/plan_dispatch.yaml/dispatches \
+            https://api.github.com/repos/${{ inputs.provisioning_repository }}/actions/workflows/plan_dispatch.yaml/dispatches \
             -d @request_body.json)
 
           if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then

@@ -505,6 +505,7 @@ def get_main() -> int:
     Outputs (via GITHUB_OUTPUT):
       product_id
       product_type
+      provisioning_repository
       repository
       repository_version
       environment
@@ -534,6 +535,7 @@ def get_main() -> int:
 
     _write_github_output("product_id", data.get("product_id"))
     _write_github_output("product_type", data.get("product_type"))
+    _write_github_output("provisioning_repository", data.get("provisioning_repository"))
     _write_github_output("repository", data.get("repository"))
     _write_github_output("repository_version", data.get("repository_version"))
     _write_github_output("environment", data.get("environment"))

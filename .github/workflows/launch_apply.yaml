@@ -85,7 +85,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
-            https://api.github.com/repos/nmoun/workflows-cpa-build-on-gcp/actions/workflows/apply_dispatch.yaml/dispatches \
+            https://api.github.com/repos/${{ steps.get.outputs.provisioning_repository }}/actions/workflows/apply_dispatch.yaml/dispatches \
             -d @request_body.json)
 
           if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
