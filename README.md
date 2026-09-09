@@ -18,5 +18,11 @@ The aim is to have a single entry point for operators to provision new demands, 
   - event: this workflow is called by the workflow executing the *terraform apply*, once the apply execution is over.
   - purpose: this workflow updates the request status depending on whether the apply succeeded or failed. It adds a comment specifiying the apply status and including the apply logs, or a link to those logs (TODO: include apply logs). The request is closed in case the apply was successful.
 
-## Scripts
-- transition_guard.py: this script is used to ensure the requests status remain consistent after each request update.
+## Prerequisites
+- Service catalog repository:
+  Repository variables:
+    - TF_BACKEND_STATE: object storage containing the tfvars file to upload
+    - WIF_POOL_NAME
+    - WIF_PROJECT_NB
+    - WIF_PROVIDER_NAME
+    - WIF_SERVICE_ACCOUNT_EMAIL
