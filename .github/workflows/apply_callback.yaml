@@ -21,7 +21,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # TODO: add a step to display the apply summary within the workflow summary
       - name: Update workflow summary with apply execution details
         if: ${{ inputs.status == 'APPLY_SUCCESS' || inputs.status == 'APPLY_FAILURE' }}
         env:

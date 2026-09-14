@@ -50,12 +50,21 @@ jobs:
   # TODO: generation of tfvars content and product ID based on inputs should be executed before proceeding
   # generate_tfvars:
 
-  # TODO: generate installation access tokens instead of using PATs
   create_request:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+
+      # TODO: use variable names defined by client
+      - name: Get installation access token for 'Service catalog' GitHub App
+        uses: actions/create-github-app-token@v3
+        id: get_token
+        with:
+          client-id: ${{ vars.SERVICE_CATALOG_GHA_CLIENT_ID }}
+          private-key: ${{ secrets.service_catalog_githubapp_private_key }}
+          owner: ${{ github.repository_owner }}
+          skip-token-revoke: true
 
       # Authenticate to GCP
       - uses: 'google-github-actions/auth@v2'
@@ -110,7 +119,7 @@ jobs:
           HTTP_STATUS=$(curl -w "%{http_code}" -s -o response.json \
             -X POST \
             -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.PAT }}" \
+            -H "Authorization: Bearer ${{ steps.get_token.outputs.token }}" \
             -H "X-GitHub-Api-Version: 2026-03-10" \
             https://api.github.com/repos/${{ inputs.provisioning_repository }}/actions/workflows/plan_dispatch.yaml/dispatches \
             -d @request_body.json)
